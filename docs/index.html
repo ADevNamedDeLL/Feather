@@ -8,9 +8,9 @@
   <meta property="og:type" content="website">
   <meta property="og:title" content="Feather — A quieter place to write code">
   <meta property="og:description" content="A lightweight native code editor for Linux, built with Rust, GTK 4 and GtkSourceView 5.">
-  <meta property="og:image" content="assets/feather-mark.svg">
+  <meta property="og:image" content="assets/feather-logo.svg">
   <title>Feather — A quieter place to write code</title>
-  <link rel="icon" type="image/svg+xml" href="assets/feather-mark.svg">
+  <link rel="icon" type="image/svg+xml" href="assets/feather-logo.svg">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -21,7 +21,7 @@
   <div class="site-shell">
     <header class="site-header">
       <a class="wordmark" href="#top" aria-label="Feather home">
-        <img src="assets/feather-mark.svg" alt="" width="29" height="29">
+        <img src="assets/feather-logo.svg" alt="" width="29" height="29">
         <span>feather<span class="wordmark-period">.</span></span>
       </a>
       <nav class="main-nav" aria-label="Main navigation">
@@ -57,11 +57,11 @@
           <div class="editor-window">
             <div class="window-top">
               <div class="window-controls"><i></i><i></i><i></i></div>
-              <div class="window-title"><img src="assets/feather-mark.svg" alt="" width="15" height="15"> Feather</div>
+              <div class="window-title"><img src="assets/feather-logo.svg" alt="" width="15" height="15"> Feather</div>
               <div class="window-top-end"><span></span><span></span><span></span></div>
             </div>
             <div class="editor-toolbar">
-              <span class="mini-brand"><img src="assets/feather-mark.svg" alt="" width="17" height="17"> Feather</span>
+              <span class="mini-brand"><img src="assets/feather-logo.svg" alt="" width="17" height="17"> Feather</span>
               <span class="tool-pill">＋ New</span><span class="tool-pill">Open File</span><span class="tool-pill">Open Folder</span><span class="tool-pill">Save</span>
               <span class="toolbar-caption">Lightweight code editor</span>
             </div>
@@ -103,7 +103,7 @@
             </div>
           </div>
           <div class="art-note"><span class="note-mark">✳</span><span>Built to feel at home<br>on your desktop.</span></div>
-          <div class="art-index">01 — THE EDITOR</div>
+          <div class="art-index">01 — ILLUSTRATIVE UI PREVIEW</div>
         </div>
         <div class="hero-bottom"><span>LESS BETWEEN YOU AND THE NEXT LINE.</span><span>SCROLL TO EXPLORE <b>↓</b></span></div>
       </section>
@@ -141,7 +141,7 @@
       </section>
 
       <section class="principle-band" id="workflow">
-        <div class="principle-mark"><img src="assets/feather-mark.svg" alt="" width="42" height="42"></div>
+        <div class="principle-mark"><img src="assets/feather-logo.svg" alt="" width="42" height="42"></div>
         <div><span class="section-kicker">A SMALLER FOOTPRINT</span><h2>Native where it matters.</h2><p>Feather is written in Rust and built with GTK 4 and GtkSourceView 5. It uses your desktop's native toolkit instead of shipping an embedded browser runtime.</p></div>
         <div class="stack-list"><span>01 <b>Rust</b></span><span>02 <b>GTK 4</b></span><span>03 <b>GtkSourceView 5</b></span></div>
       </section>
@@ -159,7 +159,7 @@
       <section class="install-section section-pad" id="install">
         <div class="section-kicker"><span>03</span> GET STARTED</div>
         <div class="install-layout">
-          <div class="install-copy"><h2>A clean start<br>on <span>Linux.</span></h2><p>Feather currently targets x86_64 Linux. Pick a package from the latest release, or build it from source.</p><div class="release-card"><div><span class="release-label">LATEST RELEASE</span><strong data-release-name>Feather v0.5.7</strong><span class="release-date" data-release-date>Release information on GitHub</span></div><a href="https://github.com/ADevNamedDeLL/Feather/releases/latest" aria-label="View latest Feather release">↗</a></div><a class="button button-primary install-button" href="https://github.com/ADevNamedDeLL/Feather/releases/latest">View downloads <span aria-hidden="true">↗</span></a></div>
+          <div class="install-copy"><h2>A clean start<br>on <span>Linux.</span></h2><p>Feather currently targets x86_64 Linux. Pick a package from the latest release, or build it from source.</p><div class="release-card"><div><span class="release-label">LATEST RELEASE</span><strong data-release-name>Feather v0.5.7</strong><span class="release-date" data-release-date>Published November 3, 2026</span></div><a href="https://github.com/ADevNamedDeLL/Feather/releases/latest" aria-label="View latest Feather release">↗</a></div><div class="download-links"><a class="button button-primary install-button" href="https://github.com/ADevNamedDeLL/Feather/releases/download/v0.5.7/Feather-0.5.7-linux-x86_64.zip">Download ZIP <span aria-hidden="true">↓</span></a><a class="button button-secondary install-button" href="https://github.com/ADevNamedDeLL/Feather/releases/download/v0.5.7/Feather-0.5.7-x86_64.AppImage">Download AppImage <span aria-hidden="true">↓</span></a></div></div>
           <div class="install-options">
             <article class="install-option"><div class="option-top"><span>01</span><span class="option-tag">EASIEST</span></div><h3>ZIP installer</h3><p>Download the archive, extract it and run the included installer.</p><pre><code>unzip Feather-*-linux-x86_64.zip
 cd Feather-*-linux-x86_64
@@ -170,19 +170,19 @@ cd Feather-*-linux-x86_64
 cargo run --release</code></pre></article>
           </div>
         </div>
-        <p class="dependency-note">Runtime dependencies: GTK 4 and GtkSourceView 5. Distribution-specific setup and full instructions are in the <a href="https://github.com/ADevNamedDeLL/Feather#requirements">README ↗</a>.</p>
+        <p class="dependency-note">The ZIP installer requires GTK 4 and GtkSourceView 5. The AppImage is more self-contained; compatibility can vary by distribution. See the <a href="https://github.com/ADevNamedDeLL/Feather#readme">README ↗</a> for details.</p>
       </section>
 
       <section class="closing">
         <div class="closing-orbit orbit-one"></div><div class="closing-orbit orbit-two"></div>
-        <img src="assets/feather-mark.svg" alt="" width="48" height="48">
+        <img src="assets/feather-logo.svg" alt="" width="48" height="48">
         <span class="section-kicker">SMALL TOOL. REAL WORK.</span>
         <h2>Make something<br><span>worth opening.</span></h2>
         <a class="button button-primary" href="https://github.com/ADevNamedDeLL/Feather">Explore Feather on GitHub <span>↗</span></a>
       </section>
     </main>
 
-    <footer class="site-footer"><a class="wordmark footer-wordmark" href="#top"><img src="assets/feather-mark.svg" alt="" width="23" height="23"><span>feather<span class="wordmark-period">.</span></span></a><span>Made for the work, not the noise.</span><div><a href="https://github.com/ADevNamedDeLL/Feather">Source ↗</a><a href="https://github.com/ADevNamedDeLL/Feather/blob/main/LICENSE">MIT License ↗</a><span>© <span data-year>2026</span> Feather</span></div></footer>
+    <footer class="site-footer"><a class="wordmark footer-wordmark" href="#top"><img src="assets/feather-logo.svg" alt="" width="23" height="23"><span>feather<span class="wordmark-period">.</span></span></a><span>Made for the work, not the noise.</span><div><a href="https://github.com/ADevNamedDeLL/Feather">Source ↗</a><a href="https://github.com/ADevNamedDeLL/Feather/blob/main/LICENSE">MIT License ↗</a><span>© <span data-year>2026</span> Feather</span></div></footer>
   </div>
 </body>
 </html>
