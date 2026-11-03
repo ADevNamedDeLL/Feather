@@ -36,6 +36,12 @@ async function loadRelease() {
     });
     const name = document.querySelector("[data-release-name]");
     if (name) name.textContent = "Feather " + release.tag_name;
+    const zipAsset = release.assets?.find((asset) => asset.name.toLowerCase().endsWith(".zip"));
+    const appImageAsset = release.assets?.find((asset) => asset.name.toLowerCase().endsWith(".appimage"));
+    const zipLink = document.querySelector("[data-release-zip]");
+    const appImageLink = document.querySelector("[data-release-appimage]");
+    if (zipLink && zipAsset) zipLink.href = zipAsset.browser_download_url;
+    if (appImageLink && appImageAsset) appImageLink.href = appImageAsset.browser_download_url;
     const date = document.querySelector("[data-release-date]");
     if (date && release.published_at) {
       date.textContent = "Published " + new Intl.DateTimeFormat(undefined, {
