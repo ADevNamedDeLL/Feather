@@ -10,7 +10,7 @@ BIN="$ROOT/target/release/feather"
 [[ -x "$BIN" ]] || { echo "Missing release binary. Run: cargo build --release --locked" >&2; exit 1; }
 
 if [[ ! -f "$ROOT/data/icons/vscode-icons/default_file.svg" ]]; then
-  "$ROOT/scripts/download-vscode-icons.sh"
+  bash "$ROOT/scripts/download-vscode-icons.sh"
 fi
 
 DIST="$ROOT/dist"

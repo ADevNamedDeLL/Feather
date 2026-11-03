@@ -46,7 +46,7 @@ jobs:
           echo "/usr/local/bin" >> "$GITHUB_PATH"
 
       - name: Package ZIP installer and AppImage
-        run: ./scripts/package-release.sh
+        run: bash ./scripts/package-release.sh
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
