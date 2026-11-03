@@ -1,0 +1,20 @@
+[package]
+name = "feather"
+version = "0.5.7"
+edition = "2021"
+rust-version = "1.83"
+description = "A lightweight native code editor for Linux"
+license = "MIT"
+
+[dependencies]
+gtk = { package = "gtk4", version = "0.11" }
+sourceview5 = "0.11"
+gio = "0.22"
+glib = "0.22"
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+strip = true
+panic = "abort"

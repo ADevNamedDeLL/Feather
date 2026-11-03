@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Feather
+Comment=Feather 0.5.7 — lightweight native code editor
+Exec=feather %F
+Icon=feather
+Terminal=false
+Categories=Development;TextEditor;
+MimeType=text/plain;
