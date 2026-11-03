@@ -95,33 +95,7 @@ printf 'Feather application files removed. User projects and editor settings wer
 UNINSTALL
 chmod 755 "$ZIPROOT/uninstall.sh"
 
-cat > "$ZIPROOT/README-INSTALL.txt" <<'README'
-FEATHER LINUX INSTALLER
 
-This package contains a precompiled x86_64 executable. Cargo and Rust are NOT
-required on the target machine.
-
-Runtime requirements:
-  GTK 4 and GtkSourceView 5 (matching the libraries used to build this release).
-
-Ubuntu/Debian:
-  sudo apt install libgtk-4-1 libgtksourceview-5-0
-
-Fedora:
-  sudo dnf install gtk4 gtksourceview5
-
-Arch/Manjaro/CachyOS:
-  sudo pacman -S gtk4 gtksourceview5
-
-Install:
-  ./install.sh
-
-Uninstall:
-  ./uninstall.sh
-
-The installer places the executable in ~/.local/bin and application data in
-~/.local/share by default. Set FEATHER_PREFIX to override the binary prefix.
-README
 
 # Keep the AppImage launcher independent of the developer's source tree.
 cat > "$APPDIR/AppRun" <<'APPRUN'
