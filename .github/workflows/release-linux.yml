@@ -38,16 +38,10 @@ jobs:
 
       - name: Install linuxdeploy and GTK plugin
         run: |
-          sudo curl -fL --retry 3 --retry-delay 2 \\
-            https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage \\
-            -o /usr/local/bin/linuxdeploy
+          sudo curl -fL --retry 3 --retry-delay 2 https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage -o /usr/local/bin/linuxdeploy
           sudo chmod +x /usr/local/bin/linuxdeploy
-
-          sudo curl -fL --retry 3 --retry-delay 2 \\
-            https://raw.githubusercontent.com/linuxdeploy/linuxdeploy-plugin-gtk/master/linuxdeploy-plugin-gtk.sh \\
-            -o /usr/local/bin/linuxdeploy-plugin-gtk
+          sudo curl -fL --retry 3 --retry-delay 2 https://raw.githubusercontent.com/linuxdeploy/linuxdeploy-plugin-gtk/master/linuxdeploy-plugin-gtk.sh -o /usr/local/bin/linuxdeploy-plugin-gtk
           sudo chmod +x /usr/local/bin/linuxdeploy-plugin-gtk
-
           echo "APPIMAGE_EXTRACT_AND_RUN=1" >> "$GITHUB_ENV"
           echo "/usr/local/bin" >> "$GITHUB_PATH"
 
