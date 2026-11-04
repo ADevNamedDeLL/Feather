@@ -1,7 +1,7 @@
 [Desktop Entry]
 Type=Application
 Name=Feather
-Comment=Feather 0.5.7 — lightweight native code editor
+Comment=Feather 0.6.0 — lightweight native code editor
 Exec=feather %F
 Icon=feather
 Terminal=false

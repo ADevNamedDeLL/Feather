@@ -44,4 +44,6 @@ echo "3. Edit a file externally: a clean buffer reloads; a dirty buffer remains 
 echo "4. Open a binary file and a file larger than 10 MiB; both must be rejected with a clear message."
 echo "5. Open a workspace, exit, relaunch with no argument; the workspace should be restored."
 echo "6. Drag tabs to reorder; verify tab labels, active document, and close buttons remain attached."
-echo "7. Test Ctrl+N (filename prompt), Ctrl+O, Ctrl+S, Ctrl+Shift+S, Ctrl+Shift+O, Alt+Left/Right/Up, Ctrl+Shift+R and F1."
+echo "7. Test Ctrl+N, Ctrl+O, Ctrl+S, Ctrl+Shift+S, Ctrl+Shift+O, Alt+Left/Right/Up, Ctrl+Shift+R and F1."
+echo "8. Test Ctrl+Shift+P, Ctrl+P, Ctrl+H, Ctrl+G, Ctrl+Shift+D, Alt+Shift+Up/Down and Ctrl+/ in an open document."
+echo "9. Verify recent files persist after restarting Feather and Editor Settings apply to the active tab."

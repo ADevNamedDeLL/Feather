@@ -124,6 +124,12 @@ mkdir -p "$DIST"
   zip -qr "$DIST/Feather-$VERSION-linux-x86_64.zip" "Feather-$VERSION-linux-x86_64"
 )
 
+(
+  cd "$ROOT"
+  zip -qr "$DIST/Feather-$VERSION-source.zip" . \
+    -x "./.git/*" "./target/*" "./dist/*"
+)
+
 if command -v linuxdeploy >/dev/null 2>&1; then
   (cd "$STAGE" && linuxdeploy --appdir "$APPDIR" --plugin gtk --output appimage)
   APPIMAGE="$(find "$STAGE" -maxdepth 1 -type f -name '*.AppImage' -print -quit)"
@@ -134,4 +140,4 @@ else
 fi
 
 echo "Release artifacts:"
-ls -lh "$DIST"/Feather-"$VERSION"-linux-x86_64.zip "$DIST"/Feather-"$VERSION"-x86_64.AppImage 2>/dev/null || true
+ls -lh "$DIST"/Feather-"$VERSION"-linux-x86_64.zip "$DIST"/Feather-"$VERSION"-source.zip "$DIST"/Feather-"$VERSION"-x86_64.AppImage 2>/dev/null || true

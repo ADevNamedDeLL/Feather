@@ -18,6 +18,7 @@ struct Document {
     buffer: sv::Buffer,
     page: gtk::Widget,
     tab_title: gtk::Label,
+    editor_view: sv::View,
     _file_monitor: Option<gio::FileMonitor>,
 }
 
@@ -35,6 +36,7 @@ struct EditorState {
     selected_file_row: Rc<RefCell<Option<gtk::Button>>>,
     welcome_page: gtk::Box,
     parent_window: Rc<RefCell<Option<ApplicationWindow>>>,
+    recent_files: Rc<RefCell<Vec<PathBuf>>>,
 }
 
 fn main() -> glib::ExitCode {
@@ -168,6 +170,14 @@ const SHORTCUT_BINDINGS: &[(&str, &str)] = &[
     ("explorer-forward", "<Alt>Right"),
     ("explorer-up", "<Alt>Up"),
     ("explorer-refresh", "<Primary><Shift>r"),
+    ("command-palette", "<Primary><Shift>p"),
+    ("quick-open", "<Primary>p"),
+    ("find-replace", "<Primary>h"),
+    ("goto-line", "<Primary>g"),
+    ("duplicate-line", "<Primary><Shift>d"),
+    ("move-line-up", "<Alt><Shift>Up"),
+    ("move-line-down", "<Alt><Shift>Down"),
+    ("toggle-comment", "<Primary>slash"),
 ];
 
 fn shortcut_accelerator(action: &str) -> &'static str {
@@ -249,6 +259,7 @@ fn build_ui(app: &Application, launch_target: Option<PathBuf>) {
         selected_file_row: Rc::new(RefCell::new(None)),
         welcome_page: gtk::Box::new(gtk::Orientation::Vertical, 0),
         parent_window: Rc::new(RefCell::new(None)),
+        recent_files: Rc::new(RefCell::new(load_recent_files())),
     };
 
     let window = ApplicationWindow::builder()
@@ -393,6 +404,14 @@ fn build_ui(app: &Application, launch_target: Option<PathBuf>) {
     status_bar.append(&state.status);
     shell.append(&status_bar);
     window.set_child(Some(&shell));
+    let dismiss_popovers = gtk::GestureClick::new();
+    dismiss_popovers.set_button(1);
+    dismiss_popovers.set_propagation_phase(gtk::PropagationPhase::Capture);
+    dismiss_popovers.connect_pressed({
+        let window = window.clone();
+        move |_, _, _, _| dismiss_visible_popovers(&window.clone().upcast::<gtk::Widget>())
+    });
+    window.add_controller(dismiss_popovers);
 
     refresh_explorer(&state);
 
@@ -491,6 +510,35 @@ fn build_ui(app: &Application, launch_target: Option<PathBuf>) {
         move || refresh_explorer(&state)
     });
 
+    add_action(app, "command-palette", shortcut_accelerator("command-palette"), {
+        let state = state.clone(); let parent = window.clone();
+        move || show_command_palette(&parent, &state)
+    });
+    add_action(app, "quick-open", shortcut_accelerator("quick-open"), {
+        let state = state.clone(); let parent = window.clone();
+        move || show_quick_open(&parent, &state)
+    });
+    add_action(app, "find-replace", shortcut_accelerator("find-replace"), {
+        let state = state.clone(); let parent = window.clone();
+        move || show_find_replace(&parent, &state)
+    });
+    add_action(app, "goto-line", shortcut_accelerator("goto-line"), {
+        let state = state.clone(); let parent = window.clone();
+        move || show_goto_line(&parent, &state)
+    });
+    add_action(app, "duplicate-line", shortcut_accelerator("duplicate-line"), {
+        let state = state.clone(); move || duplicate_line(&state)
+    });
+    add_action(app, "move-line-up", shortcut_accelerator("move-line-up"), {
+        let state = state.clone(); move || move_line(&state, -1)
+    });
+    add_action(app, "move-line-down", shortcut_accelerator("move-line-down"), {
+        let state = state.clone(); move || move_line(&state, 1)
+    });
+    add_action(app, "toggle-comment", shortcut_accelerator("toggle-comment"), {
+        let state = state.clone(); move || toggle_comment(&state)
+    });
+
     match launch_target {
         Some(target) if target.is_file() => open_path(&state, &target),
         _ => show_welcome(&state, &window),
@@ -579,6 +627,353 @@ fn make_feather_logo(size: i32) -> gtk::DrawingArea {
     logo
 }
 
+fn recent_file_store() -> Option<PathBuf> {
+    let base = std::env::var_os("XDG_CONFIG_HOME").map(PathBuf::from)
+        .or_else(|| std::env::var_os("HOME").map(|home| PathBuf::from(home).join(".config")))?;
+    Some(base.join("feather").join("recent"))
+}
+
+fn load_recent_files() -> Vec<PathBuf> {
+    let Some(path) = recent_file_store() else { return Vec::new(); };
+    fs::read_to_string(path).unwrap_or_default().lines()
+        .map(PathBuf::from).filter(|path| path.is_file()).take(20).collect()
+}
+
+fn remember_recent_file(state: &EditorState, path: PathBuf) {
+    let mut files = state.recent_files.borrow_mut();
+    files.retain(|item| item != &path);
+    files.insert(0, path);
+    files.truncate(20);
+    if let Some(store) = recent_file_store() {
+        if let Some(parent) = store.parent() { let _ = fs::create_dir_all(parent); }
+        let content = files.iter().map(|item| item.to_string_lossy().to_string()).collect::<Vec<_>>().join("\n");
+        let _ = fs::write(store, content);
+    }
+}
+
+fn active_editor(state: &EditorState) -> Option<Document> {
+    let page = state.notebook.current_page()?;
+    let widget = state.notebook.nth_page(Some(page))?;
+    state.documents.borrow().iter().find(|doc| doc.page == widget).cloned()
+}
+
+fn editor_dialog(parent: &ApplicationWindow, title: &str, width: i32, height: i32) -> (gtk::Window, gtk::Box) {
+    let dialog = gtk::Window::builder().title(title).transient_for(parent).modal(true)
+        .decorated(false).default_width(width).default_height(height).resizable(false).build();
+    dialog.add_css_class("feather-dialog-window");
+    let titlebar = gtk::HeaderBar::new();
+    titlebar.add_css_class("feather-dialog-titlebar");
+    titlebar.set_show_title_buttons(false);
+    let title_label = gtk::Label::new(Some(title));
+    title_label.add_css_class("feather-dialog-titlebar-label");
+    titlebar.set_title_widget(Some(&title_label));
+    dialog.set_titlebar(Some(&titlebar));
+    let shell = gtk::Box::new(gtk::Orientation::Vertical, 10);
+    shell.set_margin_top(16); shell.set_margin_bottom(16);
+    shell.set_margin_start(18); shell.set_margin_end(18);
+    shell.add_css_class("dialog-shell");
+    let heading = gtk::Label::new(Some(title));
+    heading.set_xalign(0.0); heading.add_css_class("dialog-title");
+    shell.append(&heading);
+    dialog.set_child(Some(&shell));
+    (dialog, shell)
+}
+
+fn show_goto_line(parent: &ApplicationWindow, state: &EditorState) {
+    let Some(doc) = active_editor(state) else { state.status.set_text("Open a file before using Go to Line"); return; };
+    let (dialog, shell) = editor_dialog(parent, "Go to Line", 360, 150);
+    let entry = gtk::Entry::new();
+    entry.set_placeholder_text(Some("Line number"));
+    entry.set_input_purpose(gtk::InputPurpose::Digits);
+    shell.append(&entry);
+    let buttons = dialog_button_row();
+    let cancel = dialog_button("Cancel", false);
+    let go = dialog_button("Go", true);
+    buttons.append(&cancel); buttons.append(&go); shell.append(&buttons);
+    let d = dialog.clone(); cancel.connect_clicked(move |_| d.close());
+    let d = dialog.clone(); let buffer = doc.buffer.clone(); let status = state.status.clone(); let input = entry.clone();
+    go.connect_clicked(move |_| {
+        match input.text().trim().parse::<i32>() {
+            Ok(line) if line > 0 && line <= buffer.line_count() => {
+                let iter = buffer.iter_at_line(line - 1).unwrap_or_else(|| buffer.end_iter());
+                buffer.place_cursor(&iter);
+                let mut target = iter;
+                doc.editor_view.scroll_to_iter(&mut target, 0.12, true, 0.0, 0.5);
+                doc.editor_view.grab_focus();
+                status.set_text(&format!("Moved to line {line}"));
+                d.close();
+            }
+            _ => status.set_text("Enter a valid line number"),
+        }
+    });
+    dialog.present(); entry.grab_focus();
+}
+
+fn show_find_replace(parent: &ApplicationWindow, state: &EditorState) {
+    let Some(doc) = active_editor(state) else { state.status.set_text("Open a file before searching"); return; };
+    let (dialog, shell) = editor_dialog(parent, "Find & Replace", 430, 230);
+    let find = gtk::Entry::new(); find.set_placeholder_text(Some("Find"));
+    let replace = gtk::Entry::new(); replace.set_placeholder_text(Some("Replace with"));
+    shell.append(&find); shell.append(&replace);
+    let buttons = dialog_button_row();
+    let cancel = dialog_button("Close", false);
+    let next = dialog_button("Find Next", false);
+    let replace_one = dialog_button("Replace", false);
+    let all = dialog_button("Replace All", true);
+    buttons.append(&cancel); buttons.append(&next); buttons.append(&replace_one); buttons.append(&all);
+    shell.append(&buttons);
+    let d = dialog.clone(); cancel.connect_clicked(move |_| d.close());
+    let buffer = doc.buffer.clone(); let status = state.status.clone(); let query = find.clone();
+    next.connect_clicked(move |_| {
+        let needle = query.text().to_string();
+        if needle.is_empty() { return; }
+        let start = buffer.iter_at_mark(&buffer.get_insert());
+        if let Some((match_start, match_end)) = start.forward_search(&needle, gtk::TextSearchFlags::empty(), None) {
+            buffer.select_range(&match_start, &match_end);
+        } else {
+            let beginning = buffer.start_iter();
+            if let Some((match_start, match_end)) = beginning.forward_search(&needle, gtk::TextSearchFlags::empty(), None) {
+                buffer.select_range(&match_start, &match_end);
+            } else { status.set_text("No matches found"); }
+        }
+    });
+    let buffer = doc.buffer.clone(); let query = find.clone(); let replacement = replace.clone(); let status = state.status.clone();
+    replace_one.connect_clicked(move |_| {
+        let needle = query.text().to_string();
+        if needle.is_empty() { return; }
+        let (start, end) = buffer.selection_bounds().unwrap_or_else(|| {
+            let iter = buffer.iter_at_mark(&buffer.get_insert()); (iter, iter)
+        });
+        let selected = buffer.text(&start, &end, true).to_string();
+        if selected == needle {
+            let mut cursor = start;
+            let mut finish = end;
+            buffer.delete(&mut cursor, &mut finish);
+            buffer.insert(&mut cursor, &replacement.text());
+            status.set_text("Occurrence replaced");
+        } else { status.set_text("Select a matching occurrence first, or use Find Next"); }
+    });
+    let buffer = doc.buffer.clone(); let query = find.clone(); let replacement = replace.clone(); let status = state.status.clone();
+    all.connect_clicked(move |_| {
+        let needle = query.text().to_string();
+        if needle.is_empty() { return; }
+        let start = buffer.start_iter(); let end = buffer.end_iter();
+        let original = buffer.text(&start, &end, true).to_string();
+        let count = original.matches(&needle).count();
+        if count == 0 { status.set_text("No matches found"); return; }
+        buffer.begin_user_action();
+        buffer.set_text(&original.replace(&needle, &replacement.text()));
+        buffer.end_user_action();
+        status.set_text(&format!("Replaced {count} occurrence(s)"));
+    });
+    dialog.present(); find.grab_focus();
+}
+
+fn collect_workspace_files(root: &Path, output: &mut Vec<PathBuf>, depth: usize) {
+    if depth > 5 || output.len() >= 500 { return; }
+    let Ok(entries) = fs::read_dir(root) else { return; };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        let name = entry.file_name();
+        if name.to_string_lossy().starts_with('.') || name.to_string_lossy() == "target" || name.to_string_lossy() == "node_modules" { continue; }
+        if path.is_dir() { collect_workspace_files(&path, output, depth + 1); }
+        else if path.is_file() { output.push(path); }
+        if output.len() >= 500 { break; }
+    }
+}
+
+fn show_quick_open(parent: &ApplicationWindow, state: &EditorState) {
+    let (dialog, shell) = editor_dialog(parent, "Quick Open", 620, 470);
+    let entry = gtk::SearchEntry::new(); entry.set_placeholder_text(Some("Search files by name or path"));
+    entry.add_css_class("dialog-search");
+    shell.append(&entry);
+    let scroll = gtk::ScrolledWindow::new(); scroll.set_vexpand(true);
+    scroll.add_css_class("dialog-scroll");
+    let list = gtk::ListBox::new(); list.set_selection_mode(gtk::SelectionMode::Single);
+    list.add_css_class("dialog-list");
+    scroll.set_child(Some(&list)); shell.append(&scroll);
+    let mut files = state.recent_files.borrow().clone();
+    let mut workspace = Vec::new(); collect_workspace_files(&state.root_dir.borrow(), &mut workspace, 0);
+    for path in workspace { if !files.contains(&path) { files.push(path); } }
+    files.truncate(500);
+    let paths = Rc::new(files);
+    let workspace_root = state.root_dir.borrow().clone();
+    let rebuild = {
+        let list = list.clone(); let paths = paths.clone(); let workspace_root = workspace_root.clone();
+        move |filter: &str| {
+            while let Some(child) = list.first_child() { list.remove(&child); }
+            for path in paths.iter().filter(|path| path.to_string_lossy().to_lowercase().contains(&filter.to_lowercase())) {
+                let label = gtk::Label::new(Some(&path.strip_prefix(&workspace_root).unwrap_or(path).display().to_string()));
+                label.set_xalign(0.0); label.set_margin_top(7); label.set_margin_bottom(7); label.set_margin_start(9);
+                list.append(&label);
+            }
+            if let Some(row) = list.row_at_index(0) { list.select_row(Some(&row)); }
+        }
+    };
+    rebuild("");
+    entry.connect_search_changed({ let rebuild = rebuild.clone(); move |input| rebuild(&input.text()) });
+    let open_selected = {
+        let paths = paths.clone(); let list = list.clone(); let state = state.clone(); let dialog = dialog.clone(); let entry_filter = entry.clone();
+        move || {
+            if let Some(row) = list.selected_row() {
+                let index = row.index() as usize;
+                let filtered: Vec<PathBuf> = paths.iter().filter(|path| path.to_string_lossy().to_lowercase().contains(&entry_filter.text().to_lowercase())).cloned().collect();
+                if let Some(path) = filtered.get(index) { open_path(&state, path); dialog.close(); }
+            }
+        }
+    };
+    list.connect_row_activated({ let open_selected = open_selected.clone(); move |_, _| open_selected() });
+    let buttons = dialog_button_row(); let open = dialog_button("Open", true); let close = dialog_button("Close", false);
+    buttons.append(&close); buttons.append(&open); shell.append(&buttons);
+    let d = dialog.clone(); close.connect_clicked(move |_| d.close());
+    open.connect_clicked(move |_| open_selected());
+    dialog.present(); entry.grab_focus();
+}
+
+fn show_editor_settings(parent: &ApplicationWindow, state: &EditorState) {
+    let Some(doc) = active_editor(state) else { state.status.set_text("Open a file to edit its settings"); return; };
+    let (dialog, shell) = editor_dialog(parent, "Editor Settings", 390, 260);
+    let line_numbers = gtk::CheckButton::with_label("Show line numbers");
+    line_numbers.set_active(true);
+    let current_line = gtk::CheckButton::with_label("Highlight current line");
+    let auto_indent = gtk::CheckButton::with_label("Automatic indentation"); auto_indent.set_active(true);
+    let spaces = gtk::CheckButton::with_label("Insert spaces instead of tabs"); spaces.set_active(true);
+    let width = gtk::SpinButton::with_range(1.0, 8.0, 1.0); width.set_value(4.0);
+    shell.append(&line_numbers); shell.append(&current_line); shell.append(&auto_indent); shell.append(&spaces);
+    let row = gtk::Box::new(gtk::Orientation::Horizontal, 8); row.append(&gtk::Label::new(Some("Tab width"))); row.append(&width); shell.append(&row);
+    let buttons = dialog_button_row(); let close = dialog_button("Close", true); buttons.append(&close); shell.append(&buttons);
+    let view = doc.editor_view.clone(); line_numbers.connect_toggled({ let view = view.clone(); move |item| view.set_show_line_numbers(item.is_active()) });
+    let view = doc.editor_view.clone(); current_line.connect_toggled(move |item| view.set_highlight_current_line(item.is_active()));
+    let view = doc.editor_view.clone(); auto_indent.connect_toggled(move |item| view.set_auto_indent(item.is_active()));
+    let view = doc.editor_view.clone(); spaces.connect_toggled(move |item| view.set_insert_spaces_instead_of_tabs(item.is_active()));
+    let view = doc.editor_view.clone(); width.connect_value_changed(move |item| view.set_tab_width(item.value() as u32));
+    let d = dialog.clone(); close.connect_clicked(move |_| d.close());
+    dialog.present();
+}
+
+fn show_command_palette(parent: &ApplicationWindow, state: &EditorState) {
+    let (dialog, shell) = editor_dialog(parent, "Command Palette", 520, 470);
+    dialog.add_css_class("command-palette-window");
+    let entry = gtk::SearchEntry::new(); entry.set_placeholder_text(Some("Type a command"));
+    entry.add_css_class("dialog-search");
+    shell.append(&entry);
+    let list = gtk::ListBox::new(); list.set_selection_mode(gtk::SelectionMode::Single);
+    list.add_css_class("dialog-list");
+    let commands: Vec<(&str, &str)> = vec![
+        ("Quick Open", "quick"), ("Find & Replace", "find"), ("Go to Line", "line"),
+        ("Duplicate Line", "duplicate"), ("Move Line Up", "up"), ("Move Line Down", "down"),
+        ("Comment / Uncomment", "comment"), ("Editor Settings", "settings"), ("Recent Files", "recent"),
+        ("Save", "save"), ("Open File", "open"), ("Open Folder", "folder"),
+    ];
+    let scroll = gtk::ScrolledWindow::new(); scroll.set_vexpand(true);
+    scroll.add_css_class("dialog-scroll");
+    scroll.set_child(Some(&list)); shell.append(&scroll);
+    let rebuild = { let list = list.clone(); let commands = commands.clone(); move |filter: &str| {
+        while let Some(child) = list.first_child() { list.remove(&child); }
+        for (label, _) in commands.iter().filter(|(label, _)| label.to_lowercase().contains(&filter.to_lowercase())) {
+            let row = gtk::Label::new(Some(label)); row.set_xalign(0.0); row.set_margin_top(8); row.set_margin_bottom(8); row.set_margin_start(10); list.append(&row);
+        }
+        if let Some(row) = list.row_at_index(0) { list.select_row(Some(&row)); }
+    }};
+    rebuild(""); entry.connect_search_changed({ let rebuild = rebuild.clone(); move |input| rebuild(&input.text()) });
+    let execute = {
+        let commands = commands.clone(); let list = list.clone(); let state = state.clone(); let parent = parent.clone(); let dialog = dialog.clone();
+        move || {
+            let Some(row) = list.selected_row() else { return; };
+            let selected = row.child().and_downcast::<gtk::Label>().map(|label| label.text().to_string()).unwrap_or_default();
+            let command = commands.iter().find(|(label, _)| *label == selected).map(|(_, command)| *command).unwrap_or("");
+            dialog.close();
+            match command {
+                "quick" => show_quick_open(&parent, &state), "find" => show_find_replace(&parent, &state),
+                "line" => show_goto_line(&parent, &state), "duplicate" => duplicate_line(&state),
+                "up" => move_line(&state, -1), "down" => move_line(&state, 1), "comment" => toggle_comment(&state),
+                "settings" => show_editor_settings(&parent, &state), "recent" => show_recent_files(&parent, &state),
+                "save" => save_active(&parent, &state), "open" => choose_file(&parent, &state), "folder" => choose_folder(&parent, &state), _ => {}
+            }
+        }
+    };
+    list.connect_row_activated({ let execute = execute.clone(); move |_, _| execute() });
+    let buttons = dialog_button_row(); let run = dialog_button("Run", true); let close = dialog_button("Close", false);
+    buttons.append(&close); buttons.append(&run); shell.append(&buttons);
+    let d = dialog.clone(); close.connect_clicked(move |_| d.close()); run.connect_clicked(move |_| execute());
+    dialog.present(); entry.grab_focus();
+}
+
+fn show_recent_files(parent: &ApplicationWindow, state: &EditorState) {
+    let (dialog, shell) = editor_dialog(parent, "Recent Files", 560, 400);
+    let list = gtk::ListBox::new(); list.set_selection_mode(gtk::SelectionMode::Single);
+    let paths = state.recent_files.borrow().clone();
+    for path in &paths {
+        let label = gtk::Label::new(Some(&path.display().to_string())); label.set_xalign(0.0);
+        label.set_margin_top(7); label.set_margin_bottom(7); label.set_margin_start(8); list.append(&label);
+    }
+    let scroll = gtk::ScrolledWindow::new(); scroll.set_vexpand(true); scroll.set_child(Some(&list)); shell.append(&scroll);
+    let buttons = dialog_button_row(); let open = dialog_button("Open", true); let close = dialog_button("Close", false);
+    buttons.append(&close); buttons.append(&open); shell.append(&buttons);
+    let d = dialog.clone(); close.connect_clicked(move |_| d.close());
+    let state_open = state.clone(); let d = dialog.clone(); open.connect_clicked(move |_| {
+        if let Some(row) = list.selected_row() { if let Some(path) = paths.get(row.index() as usize) { open_path(&state_open, path); d.close(); } }
+    });
+    dialog.present();
+}
+
+fn current_line_number(buffer: &sv::Buffer) -> i32 {
+    buffer.iter_at_mark(&buffer.get_insert()).line()
+}
+
+fn replace_line_text(buffer: &sv::Buffer, line: i32, value: &str) {
+    if let Some(mut start) = buffer.iter_at_line(line) {
+        let mut end = start.clone();
+        end.forward_to_line_end();
+        buffer.begin_user_action(); buffer.delete(&mut start, &mut end);
+        buffer.insert(&mut start, value); buffer.end_user_action();
+        buffer.place_cursor(&start);
+    }
+}
+
+fn duplicate_line(state: &EditorState) {
+    let Some(doc) = active_editor(state) else { return; };
+    let buffer = &doc.buffer; let line = current_line_number(buffer);
+    if let Some(start) = buffer.iter_at_line(line) {
+        let mut end = start.clone(); end.forward_to_line_end();
+        let content = buffer.text(&start, &end, true).to_string();
+        let mut insert_at = end;
+        buffer.begin_user_action(); buffer.insert(&mut insert_at, &format!("\n{content}")); buffer.end_user_action();
+        if let Some(cursor) = buffer.iter_at_line(line + 1) { buffer.place_cursor(&cursor); }
+    }
+}
+
+fn move_line(state: &EditorState, direction: i32) {
+    let Some(doc) = active_editor(state) else { return; };
+    let buffer = &doc.buffer; let line = current_line_number(buffer); let target = line + direction;
+    if target < 0 || target >= buffer.line_count() { return; }
+    let start = buffer.iter_at_line(line).unwrap(); let mut end = start.clone(); end.forward_to_line_end();
+    let mut lines: Vec<String> = buffer.text(&buffer.start_iter(), &buffer.end_iter(), true).split('\n').map(str::to_string).collect();
+    lines.swap(line as usize, target as usize);
+    buffer.begin_user_action(); buffer.set_text(&lines.join("\n")); buffer.end_user_action();
+    if let Some(cursor) = buffer.iter_at_line(target) { buffer.place_cursor(&cursor); }
+}
+
+fn toggle_comment(state: &EditorState) {
+    let Some(doc) = active_editor(state) else { return; };
+    let extension = doc.path.as_ref().and_then(|path| path.extension()).and_then(|ext| ext.to_str()).unwrap_or("");
+    let prefix = match extension {
+        "rs" | "c" | "h" | "cpp" | "hpp" | "js" | "jsx" | "ts" | "tsx" | "java" | "cs" | "go" | "swift" | "kt" => "//",
+        "py" | "rb" | "sh" | "bash" | "yml" | "yaml" | "toml" | "r" => "#",
+        "lua" => "--", "sql" | "hs" => "--", _ => { state.status.set_text("Comment syntax is not defined for this file type"); return; }
+    };
+    let buffer = &doc.buffer; let line = current_line_number(buffer);
+    if let Some(start) = buffer.iter_at_line(line) {
+        let mut end = start.clone(); end.forward_to_line_end(); let text = buffer.text(&start, &end, true).to_string();
+        let trimmed = text.trim_start(); let leading = text.len() - trimmed.len();
+        let updated = if trimmed.starts_with(prefix) {
+            let remove_at = leading + prefix.len();
+            let mut value = text.clone(); let remove_len = usize::from(value.as_bytes().get(remove_at) == Some(&b' ')); value.drain(remove_at..remove_at + remove_len); value
+        } else { format!("{}{} {}", &text[..leading], prefix, trimmed) };
+        replace_line_text(buffer, line, &updated);
+    }
+}
+
 fn add_help_section(parent: &gtk::Box, title: &str, rows: &[(&str, &str)]) {
     let section = gtk::Box::new(gtk::Orientation::Vertical, 5);
     section.add_css_class("help-section");
@@ -662,6 +1057,15 @@ fn show_help(parent: &ApplicationWindow) {
         ("Ctrl + S", "Save the active file"),
         ("Ctrl + Shift + S", "Save as…"),
         ("Ctrl + Shift + O", "Open a folder / workspace"),
+    ]);
+    add_help_section(&content, "EDITOR ESSENTIALS", &[
+        ("Ctrl + Shift + P", "Open the command palette"),
+        ("Ctrl + P", "Quick Open workspace files and recent files"),
+        ("Ctrl + H", "Find and replace in the active document"),
+        ("Ctrl + G", "Go to a line number"),
+        ("Ctrl + Shift + D", "Duplicate the current line"),
+        ("Alt + Shift + Up / Down", "Move the current line"),
+        ("Ctrl + /", "Comment or uncomment the current line"),
     ]);
     add_help_section(&content, "TAB MANAGEMENT", &[
         ("Drag tab", "Reorder open tabs"),
@@ -853,6 +1257,21 @@ fn create_file_monitor(
     Some(monitor)
 }
 
+fn dismiss_visible_popovers(widget: &gtk::Widget) {
+    let mut child = widget.first_child();
+    while let Some(current) = child {
+        let next = current.next_sibling();
+        if let Ok(popover) = current.clone().downcast::<gtk::Popover>() {
+            if popover.is_visible() {
+                popover.popdown();
+            }
+        } else {
+            dismiss_visible_popovers(&current);
+        }
+        child = next;
+    }
+}
+
 fn create_document(path: Option<PathBuf>, text: &str) -> Document {
     let buffer = sv::Buffer::new(None);
     buffer.set_text(text);
@@ -888,6 +1307,7 @@ fn create_document(path: Option<PathBuf>, text: &str) -> Document {
         buffer,
         page: scroll.upcast(),
         tab_title: gtk::Label::new(Some("Untitled")),
+        editor_view: view,
         _file_monitor: None,
     }
 }
@@ -1060,7 +1480,10 @@ fn open_path(state: &EditorState, path: &Path) {
         Ok(false) => {}
     }
     match fs::read_to_string(path) {
-        Ok(contents) => new_document(state, Some(canonical), &contents),
+        Ok(contents) => {
+            remember_recent_file(state, canonical.clone());
+            new_document(state, Some(canonical), &contents);
+        },
         Err(err) => show_error_for(state.parent_window.borrow().as_ref().map(|w| w.upcast_ref()), "Could not open file", &err.to_string()),
     }
 }
@@ -1536,13 +1959,15 @@ mod tests {
             assert!(accelerators.insert(*accelerator), "duplicate shortcut: {accelerator}");
             assert_eq!(shortcut_accelerator(action), *accelerator);
         }
-        assert_eq!(SHORTCUT_BINDINGS.len(), 10);
+        assert_eq!(SHORTCUT_BINDINGS.len(), 18);
     }
 
     #[test]
     fn expected_core_shortcuts_are_registered() {
         for action in ["new", "open", "save", "save-as", "help", "open-folder",
-                       "explorer-back", "explorer-forward", "explorer-up", "explorer-refresh"] {
+                       "explorer-back", "explorer-forward", "explorer-up", "explorer-refresh",
+                       "command-palette", "quick-open", "find-replace", "goto-line",
+                       "duplicate-line", "move-line-up", "move-line-down", "toggle-comment"] {
             assert!(!shortcut_accelerator(action).is_empty());
         }
     }

@@ -22,6 +22,12 @@ Feather uses native GTK components rather than an embedded browser or Electron r
 - External file-change monitoring
 - Binary-file detection and a 10 MiB file-size safety limit
 - Workspace restoration
+- Command Palette for editor commands and common file operations
+- Quick Open for workspace files and recent documents
+- Find & Replace, Go to Line, line duplication and line movement
+- Comment and uncomment support for common programming languages
+- Per-document editor settings for line numbers, current-line highlighting, indentation and tab width
+- Persistent recent-file history
 - Keyboard shortcuts and command-line path opening
 
 ## Requirements
@@ -123,11 +129,42 @@ feather --help
 | `Ctrl+S` | Save |
 | `Ctrl+Shift+S` | Save As |
 | `Ctrl+Shift+O` | Open a folder |
+| `Ctrl+Shift+P` | Command Palette |
+| `Ctrl+P` | Quick Open |
+| `Ctrl+H` | Find & Replace |
+| `Ctrl+G` | Go to Line |
+| `Ctrl+Shift+D` | Duplicate Line |
+| `Alt+Shift+Up` / `Alt+Shift+Down` | Move Line Up / Down |
+| `Ctrl+/` | Comment / Uncomment |
 | `Alt+Left` | Previous workspace directory |
 | `Alt+Right` | Next workspace directory |
 | `Alt+Up` | Open the parent directory as workspace |
 | `Ctrl+Shift+R` | Refresh Explorer |
 | `F1` | Open keyboard shortcut help |
+
+## Linux release packages
+
+Feather releases are built by GitHub Actions on Ubuntu 22.04 for x86_64 Linux. The workflow runs the locked Rust test suite, builds the optimized executable, and packages three downloadable files:
+
+- `Feather-0.6.0-linux-x86_64.zip` — precompiled binary, installer, uninstaller, application icon, syntax style and bundled VS Code file icons.
+- `Feather-0.6.0-x86_64.AppImage` — portable desktop application.
+- `Feather-0.6.0-source.zip` — source project, build scripts and GitHub Actions workflow.
+
+To publish a release, push a version tag matching `Cargo.toml`:
+
+```bash
+git add .
+git commit -m "Prepare Feather 0.6.0 release"
+git push origin main
+git tag v0.6.0
+git push origin v0.6.0
+```
+
+Pushing `v0.6.0` starts `.github/workflows/release-linux.yml`. After tests and packaging succeed, GitHub Actions creates the GitHub Release and attaches all three files. The workflow also uploads the files as a downloadable Actions artifact.
+
+To build the packages without publishing a release, open **Actions → Build Linux releases → Run workflow**. The resulting files are available under the `Feather-linux-x86_64` workflow artifact.
+
+The release workflow rejects a tag if its version does not match the version in `Cargo.toml`.
 
 ## Development
 

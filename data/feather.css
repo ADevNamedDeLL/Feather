@@ -637,3 +637,239 @@ entry.dialog-entry:focus {
     border-color: #cba6f7;
     box-shadow: 0 0 0 1px alpha(#cba6f7, 0.25);
 }
+
+window.feather-dialog-window,
+window.feather-dialog-window > box,
+window.feather-dialog-window .dialog-shell {
+    background-color: #1e1e2e;
+    color: #cdd6f4;
+}
+
+window.feather-dialog-window entry,
+window.feather-dialog-window searchentry,
+window.feather-dialog-window text,
+window.feather-dialog-window textview,
+window.feather-dialog-window list,
+window.feather-dialog-window listview,
+window.feather-dialog-window row,
+window.feather-dialog-window scrolledwindow,
+window.feather-dialog-window viewport {
+    background-color: #181825;
+    color: #cdd6f4;
+    border-color: #45475a;
+}
+
+window.feather-dialog-window entry,
+window.feather-dialog-window searchentry {
+    caret-color: #cba6f7;
+    border: 1px solid #585b70;
+    border-radius: 7px;
+    box-shadow: none;
+}
+
+window.feather-dialog-window entry:focus,
+window.feather-dialog-window searchentry:focus-within {
+    border-color: #cba6f7;
+    box-shadow: 0 0 0 1px alpha(#cba6f7, 0.25);
+}
+
+window.feather-dialog-window list row,
+window.feather-dialog-window listview row {
+    background-color: #181825;
+    color: #cdd6f4;
+    border: 0;
+    min-height: 34px;
+}
+
+window.feather-dialog-window list row:hover,
+window.feather-dialog-window listview row:hover {
+    background-color: #313244;
+    color: #cdd6f4;
+}
+
+window.feather-dialog-window list row:selected,
+window.feather-dialog-window listview row:selected {
+    background-color: #45475a;
+    color: #cdd6f4;
+}
+
+window.feather-dialog-window list row:selected label,
+window.feather-dialog-window listview row:selected label {
+    color: #cdd6f4;
+}
+
+window.feather-dialog-window scrollbar,
+window.feather-dialog-window scrollbar trough {
+    background-color: #181825;
+    border: 0;
+}
+
+window.feather-dialog-window scrollbar slider {
+    background-color: #585b70;
+    border-radius: 8px;
+    min-width: 7px;
+    min-height: 7px;
+}
+
+popover,
+popover.background,
+popover > contents,
+popover.menu,
+popover.menu > contents {
+    background-color: #181825;
+    color: #cdd6f4;
+    border: 1px solid #45475a;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px alpha(#000000, 0.42);
+}
+
+popover modelbutton,
+popover.menu modelbutton {
+    background-color: transparent;
+    color: #cdd6f4;
+    border-radius: 5px;
+    min-height: 30px;
+    padding: 4px 9px;
+}
+
+popover modelbutton:hover,
+popover.menu modelbutton:hover,
+popover modelbutton:focus,
+popover.menu modelbutton:focus {
+    background-color: #313244;
+    color: #cdd6f4;
+}
+
+popover modelbutton:disabled,
+popover.menu modelbutton:disabled {
+    color: #6c7086;
+}
+
+popover separator,
+popover.menu separator {
+    background-color: #313244;
+}
+
+popover label,
+popover image {
+    color: #cdd6f4;
+}
+
+scrollbar trough {
+    background-color: #181825;
+}
+
+scrollbar slider {
+    background-color: #585b70;
+}
+
+menu,
+.menu,
+menuitem,
+.menuitem {
+    background-color: #181825;
+    color: #cdd6f4;
+    border-color: #45475a;
+}
+
+menuitem:hover,
+.menuitem:hover {
+    background-color: #313244;
+    color: #cdd6f4;
+}
+
+menuitem:disabled,
+.menuitem:disabled {
+    color: #6c7086;
+}
+
+menu separator,
+.menu separator {
+    background-color: #313244;
+}
+
+window.feather-dialog-window checkbutton,
+window.feather-dialog-window radiobutton,
+window.feather-dialog-window spinbutton,
+window.feather-dialog-window dropdown,
+window.feather-dialog-window combobox {
+    color: #cdd6f4;
+}
+
+window.feather-dialog-window spinbutton entry,
+window.feather-dialog-window dropdown button,
+window.feather-dialog-window combobox button {
+    background-color: #181825;
+    color: #cdd6f4;
+    border: 1px solid #45475a;
+    box-shadow: none;
+}
+
+
+window.feather-dialog-window {
+    background-color: #1e1e2e;
+    color: #cdd6f4;
+    border: 1px solid #45475a;
+}
+
+window.feather-dialog-window headerbar.feather-dialog-titlebar {
+    background-color: #181825;
+    color: #cdd6f4;
+    border: 0;
+    border-bottom: 1px solid #313244;
+    min-height: 38px;
+    padding: 0 8px;
+    box-shadow: none;
+}
+
+window.feather-dialog-window headerbar.feather-dialog-titlebar label,
+.feather-dialog-titlebar-label {
+    color: #cdd6f4;
+    font-weight: 700;
+}
+
+window.feather-dialog-window headerbar.feather-dialog-titlebar button {
+    color: #a6adc8;
+    background-color: transparent;
+    border: 0;
+    box-shadow: none;
+}
+
+window.feather-dialog-window headerbar.feather-dialog-titlebar button:hover {
+    color: #cba6f7;
+    background-color: #313244;
+}
+
+popover,
+popover.background,
+popover.menu,
+popover.menu > contents,
+popover > contents {
+    background-color: #181825;
+    color: #cdd6f4;
+    border: 0;
+    outline: 0;
+    box-shadow: none;
+}
+
+popover.menu > contents,
+popover.menu contents {
+    padding: 4px;
+    border-radius: 7px;
+}
+
+popover.menu modelbutton,
+popover.menu modelbutton label,
+popover.menu label {
+    color: #cdd6f4;
+}
+
+popover.menu modelbutton:hover,
+popover.menu modelbutton:focus {
+    background-color: #313244;
+    color: #cdd6f4;
+}
+
+popover.menu separator {
+    background-color: #313244;
+}
