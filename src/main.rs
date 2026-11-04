@@ -38,6 +38,7 @@ struct EditorState {
 }
 
 fn main() -> glib::ExitCode {
+    configure_graphics_backend();
     let args: Vec<std::ffi::OsString> = std::env::args_os().skip(1).collect();
     if args.iter().any(|arg| arg == "--version" || arg == "-V") {
         println!("Feather {}", env!("CARGO_PKG_VERSION"));
@@ -55,6 +56,25 @@ fn main() -> glib::ExitCode {
     app.connect_startup(|_| install_css());
     app.connect_activate(move |app| build_ui(app, launch_target.clone()));
     app.run_with_args::<&str>(&[])
+}
+
+fn configure_graphics_backend() {
+    if std::env::var_os("GSK_RENDERER").is_some() {
+        return;
+    }
+
+    let is_wsl = std::env::var_os("WSL_DISTRO_NAME").is_some()
+        || std::env::var_os("WSL_INTEROP").is_some()
+        || fs::read_to_string("/proc/sys/kernel/osrelease")
+            .map(|release| {
+                let release = release.to_ascii_lowercase();
+                release.contains("microsoft") || release.contains("wsl")
+            })
+            .unwrap_or(false);
+
+    if is_wsl {
+        std::env::set_var("GSK_RENDERER", "cairo");
+    }
 }
 
 fn expand_user_path(path: PathBuf) -> PathBuf {
