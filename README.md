@@ -142,30 +142,6 @@ feather --help
 | `Ctrl+Shift+R` | Refresh Explorer |
 | `F1` | Open keyboard shortcut help |
 
-## Linux release packages
-
-Feather releases are built by GitHub Actions on Ubuntu 22.04 for x86_64 Linux. The workflow runs the locked Rust test suite, builds the optimized executable, and packages three downloadable files:
-
-- `Feather-0.6.0-linux-x86_64.zip` — precompiled binary, installer, uninstaller, application icon, syntax style and bundled VS Code file icons.
-- `Feather-0.6.0-x86_64.AppImage` — portable desktop application.
-- `Feather-0.6.0-source.zip` — source project, build scripts and GitHub Actions workflow.
-
-To publish a release, push a version tag matching `Cargo.toml`:
-
-```bash
-git add .
-git commit -m "Prepare Feather 0.6.0 release"
-git push origin main
-git tag v0.6.0
-git push origin v0.6.0
-```
-
-Pushing `v0.6.0` starts `.github/workflows/release-linux.yml`. After tests and packaging succeed, GitHub Actions creates the GitHub Release and attaches all three files. The workflow also uploads the files as a downloadable Actions artifact.
-
-To build the packages without publishing a release, open **Actions → Build Linux releases → Run workflow**. The resulting files are available under the `Feather-linux-x86_64` workflow artifact.
-
-The release workflow rejects a tag if its version does not match the version in `Cargo.toml`.
-
 ## Development
 
 Install the development dependencies for your distribution, then install a stable Rust toolchain.
