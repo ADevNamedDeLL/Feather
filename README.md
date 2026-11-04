@@ -1,5 +1,9 @@
 # Feather
 
+<p align="center">
+  <img src="docs/imgs/Feather_main.png" alt="Feather code editor" width="100%">
+</p>
+
 **Feather** is a lightweight native code editor for Linux, built with Rust, GTK 4 and GtkSourceView 5. It provides a focused editing environment with a file explorer, tabbed documents, syntax highlighting and a dark interface.
 
 Feather uses native GTK components rather than an embedded browser or Electron runtime.
